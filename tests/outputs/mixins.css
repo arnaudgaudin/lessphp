@@ -3,10 +3,10 @@
   font-weight:bold;
 }
 body #window {
+  line-height:0;
   border-radius:10px;
   font-size:20px;
   font-weight:bold;
-  line-height:30px;
 }
 #bundle .button {
   display:block;
@@ -34,14 +34,17 @@ body b { color:blue; }
 .hello .world { color:blue; }
 .foobar { color:blue; }
 .eggs {
-  foo:1px 2px 4px 8px;
-  bar:1px 2px 4px 8px;
+  foo:1px 2px;
+  bar:1px 2px;
+  foo:100 land;
+  bar:100 land;
 }
 #hello { cool:one two three cool; }
+#hello-important { cool:one two three cool !important; }
 #world { cool:"world"; }
 #another {
   things:red blue green;
-  things:red blue green;
+  things:red blue green skip me;
 }
 #day .cool { color:one two three; }
-#day .cool { color:one two three; }
+#day .cool { color:one two three skip me; }

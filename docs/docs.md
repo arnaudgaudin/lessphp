@@ -1,8 +1,8 @@
-    title: v0.3.1 documentation
+    title: v0.3.5 documentation
     link_to_home: true
 --
 
-<h2 skip="true">Documentation v0.3.0</h2>
+<h2 skip="true">Documentation v0.3.5</h2>
 
 <div style="margin-bottom: 1em;">$index</div>
 
@@ -82,6 +82,16 @@ appear. They can hold any CSS property value.
 Variables are only visible for use from their current scope, or any enclosed
 scopes.
 
+If you have a string or keyword in a variable, you can reference another
+variable by that name by repeating the `@`:
+
+    ```less
+    @value: 20px;
+    @value_name: "value";
+
+    width: @@value_name;
+    ```
+
 ### Expressions
 
 Expressions let you combine values and variables in meaningful ways. For
@@ -126,9 +136,16 @@ they are evaluated:
     margin: 10px - 5px;
     ```
 
-Division has a special quirk. Due to CSS font shorthand syntax, we need to be
-careful about how we place spaces. In the following example we are using font
-size and lineheight shorthand. No division should take place:
+Division has a special quirk. There are certain CSS properties that use the `/`
+operator as part of their value's syntax. Namely, the [font][4] shorthand and
+[border-radius][3].
+
+  [3]: https://developer.mozilla.org/en/CSS/border-radius
+  [4]: https://developer.mozilla.org/en/CSS/font
+
+
+Thus, **lessphp** will ignore any division in these properties unless it is
+wrapped in parentheses. For example, no division will take place here:
 
     ```less
     .font {
@@ -136,14 +153,21 @@ size and lineheight shorthand. No division should take place:
     }
     ```
 
-In order to force division we can surround the `/` by spaces, or we can wrap
-the expression in parentheses:
+In order to force division we must wrap the expression in parentheses:
 
     ```less
     .font {
-      // these two will evaluate
-      font: 20px / 80px "Times New Roman";
       font: (20px/80px) "Times New Roman";
+    }
+    ```
+
+If you want to write a literal `/` expression without dividing in another
+property (or a variable), you can use [string unquoting](#string_unquoting):
+
+    ```less
+    .var {
+      @size: ~"20px/80px";
+      font: @size sans-serif;
     }
     ```
 
@@ -156,7 +180,7 @@ logically organize the structure of our CSS.
     ```less
     ol.list {
       li.special {
-        border: 1px solid red; 
+        border: 1px solid red;
       }
 
       li.plain {
@@ -257,7 +281,7 @@ compiled. Its properties will only appear when mixed into another block.
 
 The canonical example is to create a rounded corners mixin that works across
 browsers:
-    
+
     ```less
     .rounded-corners(@radius: 5px) {
       border-radius: @radius;
@@ -275,26 +299,6 @@ browsers:
     }
     ```
 
-Take note of the default argument, which makes specifying that argument optional.
-Because CSS values can contain `,`, the argument delimiter is a `;`.
-
-    .box-shadow(@props) {
-        box-shadow: @props;
-        -webkit-box-shadow: @props;
-        -moz-box-shadow: @props;
-    }
-
-    .size(@width; @height; @padding: 8px) {
-        width: @width - 2 * @padding;
-        height: @height - 2 * @padding;
-        padding: @padding;
-    }
-
-    .box {
-        .box-shadow(5px 5px 8px red, -4px -4px 8px blue); // all one argument
-        .size(400px;200px) // multiple argument:
-    }
-
 If you have a mixin that doesn't have any arguments, but you don't want it to
 show up in the output, give it a blank argument list:
 
@@ -302,7 +306,7 @@ show up in the output, give it a blank argument list:
     .secret() {
       font-size: 6000px;
     }
-    
+
     .div {
       .secret;
     }
@@ -351,7 +355,7 @@ spaces.
 This useful for quickly assigning all the arguments:
 
     ```less
-    .box-shadow(@inset, @x, @y, @blur, @spread, @color) {
+    .box-shadow(@x, @y, @blur, @color) {
       box-shadow: @arguments;
       -webkit-box-shadow: @arguments;
       -moz-box-shadow: @arguments;
@@ -361,7 +365,7 @@ This useful for quickly assigning all the arguments:
     }
     ```
 
-In addition to the arguments passed to the mixin, `@arguments` will also inlude
+In addition to the arguments passed to the mixin, `@arguments` will also include
 remaining default values assigned by the mixin:
 
 
@@ -374,6 +378,309 @@ remaining default values assigned by the mixin:
       .border-mixin(4px, dotted);
     }
 
+    ```
+
+
+#### Pattern Matching
+
+When you *mix in* a mixin, all the available mixins of that name in the current
+scope are checked to see if they match based on what was passed to the mixin
+and how it was declared.
+
+The simplest case is matching by number of arguments. Only the mixins that
+match the number of arguments passed in are used.
+
+    ```less
+    .simple() { // matches no arguments
+      height: 10px;
+    }
+
+    .simple(@a, @b) { // matches two arguments
+      color: red;
+    }
+
+    .simple(@a) { // matches one argument
+      color: blue;
+    }
+
+    div {
+      .simple(10);
+    }
+
+    span {
+      .simple(10, 20);
+    }
+    ```
+
+Whether an argument has default values is also taken into account when matching
+based on number of arguments:
+
+    ```less
+    // matches one or two arguments
+    .hello(@a, @b: blue) {
+      height: @a;
+      color: @b;
+    }
+
+    .hello(@a, @b) { // matches only two
+      width: @a;
+      border-color: @b;
+    }
+
+    .hello(@a) { // matches only one
+      padding: 1em;
+    }
+
+    div {
+      .hello(10px);
+    }
+
+    pre {
+      .hello(10px, yellow);
+    }
+    ```
+
+Additionally, a *vararg* value can be used to further control how things are
+matched.  A mixin's argument list can optionally end in the special argument
+named `...`.  The `...` may match any number of arguments, including 0.
+
+    ```less
+    // this will match any number of arguments
+    .first(...) {
+      color: blue;
+    }
+
+    // matches at least 1 argument
+    .second(@arg, ...) {
+      height: 200px + @arg;
+    }
+
+    div { .first("some", "args"); }
+    pre { .second(10px); }
+    ```
+
+If you want to capture the values that get captured by the *vararg* you can
+give it a variable name by putting it directly before the `...`. This variable
+must be the last argument defined. It's value is just like the special
+[`@arguments` variable](#arguments_variable), a space separated list.
+
+
+    ```less
+    .hello(@first, @rest...) {
+      color: @first;
+      text-shadow: @rest;
+    }
+
+    span {
+      .hello(red, 1px, 1px, 0px, white);
+    }
+
+    ```
+
+Another way of controlling whether a mixin matches is by specifying a value in
+place of an argument name when declaring the mixin:
+
+    ```less
+    .style(old, @size) {
+      font: @size serif;
+    }
+
+    .style(new, @size) {
+      font: @size sans-serif;
+    }
+
+    .style(@_, @size) {
+      letter-spacing: floor(@size / 6px);
+    }
+
+    em {
+      @switch: old;
+      .style(@switch, 15px);
+    }
+    ```
+
+Notice that two of the three mixins were matched. The mixin with a matching
+first argument, and the generic mixin that matches two arguments. It's common
+to use `@_` as the name of a variable we intend to not use. It has no special
+meaning to LESS, just to the reader of the code.
+
+#### Guards
+
+Another way of restricting when a mixin is mixed in is by using guards. A guard
+is a special expression that is associated with a mixin declaration that is
+evaluated during the mixin process. It must evaluate to true before the mixin
+can be used.
+
+We use the `when` keyword to begin describing a list of guard expressions.
+
+Here's a simple example:
+
+    ```less
+    .guarded(@arg) when (@arg = hello) {
+      color: blue;
+    }
+
+    div {
+      .guarded(hello); // match
+    }
+
+    span {
+      .guarded(world); // no match
+    }
+    ```
+Only the `div`'s mixin will match in this case, because the guard expression
+requires that `@arg` is equal to `hello`.
+
+We can include many different guard expressions by separating them by commas.
+Only one of them needs to match to trigger the mixin:
+
+    ```less
+    .x(@a, @b) when (@a = hello), (@b = world) {
+      width: 960px;
+    }
+
+    div {
+      .x(hello, bar); // match
+    }
+
+    span {
+      .x(foo, world); // match
+    }
+
+    pre {
+      .x(foo, bar); // no match
+    }
+    ```
+
+Instead of a comma, we can use `and` keyword to make it so all of the guards
+must match in order to trigger the mixin. `and` has higher precedence than the
+comma.
+
+    ```less
+    .y(@a, @b) when (@a = hello) and (@b = world) {
+      height: 600px;
+    }
+
+    div {
+      .y(hello, world); // match
+    }
+
+    span {
+      .y(hello, bar); // no match
+    }
+    ```
+
+Commas and `and`s can be mixed and matched.
+
+You can also negate a guard expression by using `not` in from of the parentheses:
+
+    ```less
+    .x(@a) when not (@a = hello) {
+      color: blue;
+    }
+
+    div {
+      .x(hello); // no match
+    }
+    ```
+
+The `=` operator is used to check equality between any two values. For numbers
+the following comparison operators are also defined:
+
+`<`, `>`, `=<`, `>=`
+
+There is also a collection of predicate functions that can be used to test the
+type of a value.
+
+These are `isnumber`, `iscolor`, `iskeyword`, `isstring`, `ispixel`,
+`ispercentage` and `isem`.
+
+    ```less
+    .mix(@a) when (ispercentage(@a)) {
+      height: 500px * @a;
+    }
+    .mix(@a) when (ispixel(@a)) {
+      height: @a;
+    }
+
+    div.a {
+      .mix(50%);
+    }
+
+    div.a {
+      .mix(350px);
+    }
+    ```
+
+#### !important
+
+If you want to apply the `!important` suffix to every property when mixing in a
+mixin, just append `!important` to the end of the call to the mixin:
+
+    ```less
+    .make_bright {
+      color: red;
+      font-weight: bold;
+    }
+
+    .color {
+      color: green;
+    }
+
+    body {
+      .make_bright() !important;
+      .color();
+    }
+
+    ```
+
+### Selector Expressions
+
+Sometimes we want to dynamically generate the selector of a block based on some
+variable or expression. We can do this by using *selector expressions*. Selector
+expressions are CSS selectors that are evaluated in the current scope before
+being written out.
+
+A simple example is a mixin that dynamically creates a selector named after the
+mixin's argument:
+
+    ```less
+    .create-selector(@name) {
+      (e(@name)) {
+        color: red;
+      }
+    }
+
+    .create-selector("hello");
+    .create-selector("world");
+    ```
+
+Any selector that is enclosed in `()` will have it's contents evaluated and
+directly written to output. The value is not changed any way before being
+outputted, thats why we use the `e` function. If you're not familiar, the `e`
+function strips quotes off a string value. If we didn't have it, then the
+selector would have quotes around it, and that's not valid CSS!
+
+Any value can be used in a selector expression, but it works best when using
+strings and things like [String Interpolation](#string_interpolation).
+
+Here's an interesting example adapted from Twitter Bootstrap. A couple advanced
+things are going on. We are using [Guards](#guards) along with a recursive
+mixin to work like a loop to generate a series of CSS blocks.
+
+
+    ```less
+    // create our recursive mixin:
+    .spanX (@index) when (@index > 0) {
+      (~".span@{index}") {
+        width: @index * 100px;
+      }
+      .spanX(@index - 1);
+    }
+    .spanX (0) {}
+
+    // mix it into the global scopee:
+    .spanX(4);
     ```
 
 ### Import
@@ -523,28 +830,28 @@ function that let's you unquote any value. It is called `e`.
 
 * `spin(color, amount)` -- returns a color with `amount` degrees added to hue
 
-* `fade(color, amount)` -- retuns a color with the alpha set to `amount`
+* `fade(color, amount)` -- returns a color with the alpha set to `amount`
 
-* `hue(color)` -- retuns the hue of `color`
+* `hue(color)` -- returns the hue of `color`
 
-* `saturation(color)` -- retuns the saturation of `color`
+* `saturation(color)` -- returns the saturation of `color`
 
-* `lightness(color)` -- retuns the lightness of `color`
+* `lightness(color)` -- returns the lightness of `color`
 
-* `alpha(color)` -- retuns the alpha value of `color` or 1.0 if it doesn't have an alpha
+* `alpha(color)` -- returns the alpha value of `color` or 1.0 if it doesn't have an alpha
 
-* `percentage(number)` -- converts a floating point number to a percentage, eg. `0.65` -> `65%`
+* `percentage(number)` -- converts a floating point number to a percentage, e.g. `0.65` -> `65%`
 
-* `mix(color1, color1, percent)` -- mixes two colors by percentagle where 100%
+* `mix(color1, color1, percent)` -- mixes two colors by percentage where 100%
   keeps all of `color1`, and 0% keeps all of `color2`. Will take into account
   the alpha of the colors if it exists. See
   <http://sass-lang.com/docs/yardoc/Sass/Script/Functions.html#mix-instance_method>.
 
 * `rgbahex(color)` -- returns a string containing 4 part hex color.
-   
+
    This is used to convert a CSS color into the hex format that IE's filter
    method expects when working with an alpha component.
-   
+
        ```less
        .class {
           @start: rgbahex(rgba(25, 34, 23, .5));
@@ -578,6 +885,48 @@ To compile a string to a string:
     $less = new lessc(); // a blank lessc
     $css = $less->parse("body { a { color: red } }");
     ```
+
+### Output Formatting
+
+Besides the default output formatter, **lessphp** comes with two additional
+ones, and it's easy to make your own.
+
+The first extra formatter is called `compressed`. It compresses the output by
+removing any extra whitespace.
+
+We use the `setFormatter` method set the formatter that should be used. Just
+pass the name of the formatter:
+
+    ```php
+    $less = new lessc("myfile.less");
+
+    $less->setFormatter("compressed");
+
+    $css = $less->parse();
+    ```
+
+The second formatter is called `indent`. It will indent CSS blocks based on how
+they were nested in the LESS code.
+
+#### Custom Formatter
+
+The easiest way to customize is to create your own instance of the formatter
+and alter its public properties before passing it off to **lessphp**. The
+`setFormatter` method can also take an instance of a formatter.
+
+For example, let's use tabs instead of the default two spaces to indent:
+
+    ```php
+    $formatter = new lessc_formatter;
+    $formatter->indentChar = "\t";
+
+    $less = new lessc("myfile.less");
+    $less->setFormatter($formatter);
+    $css = $less->parse();
+    ```
+
+For more information about what can be configured with the formatter consult
+the sourcecode.
 
 ### Compiling Automatically
 
@@ -655,8 +1004,7 @@ An example with saving cache object to a file:
       }
     }
 
-    auto_compile_less('myfile.less', 'myfile.css')
-
+    auto_compile_less('myfile.less', 'myfile.css');
     ```
 
 `lessc:cexecute` takes an optional second argument, `$force`. Passing in true
@@ -682,20 +1030,19 @@ associative array of names and values. The values will parsed as CSS values:
 
     ```php
     $less = new lessc();
-    echo $less->parse(".magic { color: @color;  width: @base - 200; }", 
+    echo $less->parse(".magic { color: @color;  width: @base - 200; }",
         array(
             'color' => 'red';
             'base' => '960px';
         ));
     ```
 
-You can also do this when loading from a file, but remember to set the first
-argument of the parse function to `null`, otherwise it will try to compile that
-instead of the file:
+You can also do this when loading from a file. If the first argument of `parse`
+is an array it will be used an array of variables to set.
 
     ```php
     $less = new lessc("myfile.less");
-    echo $less->parse(null, array('color' => 'blue'));
+    echo $less->parse(array('color' => 'blue'));
     ```
 
 ### Custom Functions
@@ -757,7 +1104,7 @@ a string or numeric value, it will automatically be coerced into an appropriate
 typed value. In our example, we reconstruct the value with our modifications
 while making sure that we preserve the original type.
 
-In addition to the arguments passed from **lessphp**, the instnace of
+In addition to the arguments passed from **lessphp**, the instance of
 **lessphp** itself is sent to the registered function as the second argument.
 
 ## Command Line Interface
@@ -796,7 +1143,7 @@ Errors from watch mode are written to standard out.
 ## License
 
 Copyright (c) 2010 Leaf Corcoran, <http://leafo.net/lessphp>
- 
+
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -804,10 +1151,10 @@ without limitation the rights to use, copy, modify, merge, publish,
 distribute, sublicense, and/or sell copies of the Software, and to
 permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND

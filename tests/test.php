@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php
 error_reporting(E_ALL);
 
@@ -6,7 +7,7 @@ error_reporting(E_ALL);
  * and compile them, then compare them to paired file in
  * output directory.
  */
-$difftool = 'diff';
+$difftool = 'diff -b -B -t -u';
 $input = array(
 	'dir' => 'inputs',
 	'glob' => '*.less',
@@ -17,21 +18,65 @@ $output = array(
 	'filename' => '%s.css',
 );
 
-$prefix = realpath(dirname(__FILE__));
+
+$prefix = strtr(realpath(dirname(__FILE__)), '\\', '/');
 require $prefix.'/../lessc.inc.php';
 
 $compiler = new lessc();
-$compiler->importDir = $input['dir'].'/test-imports';
+$compiler->importDir = array($input['dir'].'/test-imports');
 
 $fa = 'Fatal Error: ';
-if (php_sapi_name() != 'cli') { 
+if (php_sapi_name() != 'cli') {
 	exit($fa.$argv[0].' must be run in the command line.');
 }
 
-$opts = getopt("hCd::");
+$opts = getopt('hCd::g');
 
-if (isset($opts['h'])) {
-	exit("help me");
+if ($opts === false || isset($opts['h'])) {
+	echo <<<EOT
+Usage: ./test.php [options] [searchstring]
+
+where [options] can be a mix of these:
+
+  -h              Show this help message and exit.
+
+  -d=[difftool]   Show the diff of the actual output vs. the reference when a
+                  test fails; uses 'diff -b -B -t -u' by default.
+
+                  The test is aborted after the first failure report, unless
+                  you also specify the '-g' option ('go on').
+
+  -g              Continue executing the other tests when a test fails and
+                  option '-d' is active.
+
+  -C              Regenerate ('compile') the reference output files from the
+                  given inputs.
+
+                  WARNING: ONLY USE THIS OPTION WHEN YOU HAVE ASCERTAINED
+                           THAT lessphp PROCESSES ALL TESTS CORRECTLY!
+
+The optional [searchstring] is used to filter the input files: only tests
+which have filename(s) containing the specified searchstring will be
+executed. I.e. the corresponding glob pattern is '*[searchstring]*.less'.
+
+The script EXIT CODE is the number of failed tests (with a maximum of 255),
+0 on success and 1 when this help message is shown. This aids in integrating
+this script in larger (user defined) shell test scripts.
+
+
+Examples of use:
+
+- Test the full test set:
+    ./test.php
+
+- Run only the mixin tests:
+    ./test.php mixin
+
+- Use a custom diff tool to show diffs for failing tests
+    ./test.php -d=meld
+
+EOT;
+	exit(1);
 }
 
 $input['dir'] = $prefix.'/'.$input['dir'];
@@ -56,13 +101,14 @@ if ($matches) {
 		extract(pathinfo($fname)); // for $filename, from php 5.2
 		$tests[] = array(
 			'in' => $fname,
-			'out' => $output['dir'].'/'.sprintf($output['filename'], $filename), 
+			'out' => $output['dir'].'/'.sprintf($output['filename'], $filename),
 		);
 	}
 }
 
 $count = count($tests);
 $compiling = isset($opts["C"]);
+$continue_when_test_fails = isset($opts["g"]);
 $showDiff = isset($opts["d"]);
 if ($showDiff && !empty($opts["d"])) {
 	$difftool = $opts["d"];
@@ -79,6 +125,7 @@ function dump($msgs, $depth = 1, $prefix="    ") {
 
 $fail_prefix = " ** ";
 
+$fail_count = 0;
 $i = 1;
 foreach ($tests as $test) {
 	printf("    [Test %04d/%04d] %s -> %s\n", $i, $count, basename($test['in']), basename($test['out']));
@@ -109,7 +156,12 @@ foreach ($tests as $test) {
 		}
 		$expected = trim(file_get_contents($test['out']));
 
+		// don't care about CRLF vs LF change (DOS/Win vs. UNIX):
+		$expected = trim(str_replace("\r\n", "\n", $expected));
+		$parsed = trim(str_replace("\r\n", "\n", $parsed));
+
 		if ($expected != $parsed) {
+			$fail_count++;
 			if ($showDiff) {
 				dump("Failed:", 1, $fail_prefix);
 				$tmp = $test['out'].".tmp";
@@ -117,9 +169,15 @@ foreach ($tests as $test) {
 				system($difftool.' '.$test['out'].' '.$tmp);
 				unlink($tmp);
 
-				dump("Aborting");
-				break;
-			} else dump("Failed, run with -d flag to view diff", 1, $fail_prefix);
+				if (!$continue_when_test_fails) {
+					dump("Aborting");
+					break;
+				} else {
+					echo "===========================================================================\n";
+				}
+			} else {
+				dump("Failed, run with -d flag to view diff", 1, $fail_prefix);
+			}
 		} else {
 			dump("Passed");
 		}
@@ -128,4 +186,5 @@ foreach ($tests as $test) {
 	$i++;
 }
 
+exit($fail_count > 255 ? 255 : $fail_count);
 ?>
