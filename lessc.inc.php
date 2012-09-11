@@ -32,7 +32,7 @@
  *    - compiling: lessc::compileBlock()
  *
  */
-class lessc {
+class lesscV1 {
 	protected $buffer;
 	protected $count;
 	protected $line;
@@ -1216,6 +1216,15 @@ class lessc {
 		return array($arg[0], round($arg[1]));
 	}
 
+	/**
+	 * return value without its unit
+	 * @param  array $arg Array of arguments
+	 * @return array
+	 */
+	function lib_unitLess($arg) {
+		return array($arg[1]);
+	}	
+
 	// is a string surrounded in quotes? returns the quoting char if true
 	function quoted($s) {
 		if (preg_match('/^("|\').*?\1$/', $s, $m))
@@ -1849,7 +1858,7 @@ class lessc {
 
 	// create a child parser (for compiling an import)
 	protected function createChild($fname) {
-		$less = new lessc($fname);
+		$less = new lesscV1($fname);
 		$less->importDir = array_merge((array)$less->importDir, (array)$this->importDir);
 		$less->indentChar = $this->indentChar;
 		$less->compat = $this->compat;
