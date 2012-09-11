@@ -963,7 +963,7 @@ instead of spaces:
 
 
     ```php
-    $formatter = new lessc_formatter_classic;
+    $formatter = new lessc_formatter_classicV1;
     $formatter->indentChar = "\t";
 
     $less = new lessc;

@@ -11,7 +11,7 @@ if (!$fname = array_shift($argv)) {
 	$fname = "php://stdin";
 }
 
-class lesscNormalized extends lessc {
+class lesscNormalizedV1 extends lessc {
 	public $numberPrecision = 3;
 
 	public function compileValue($value) {
@@ -23,7 +23,7 @@ class lesscNormalized extends lessc {
 	}
 }
 
-class SortingFormatter extends lessc_formatter_lessjs {
+class SortingFormatterV1 extends lessc_formatter_lessjsV1 {
 	function sortKey($block) {
 		if (!isset($block->sortKey)) {
 			sort($block->selectors, SORT_STRING);
@@ -51,7 +51,7 @@ class SortingFormatter extends lessc_formatter_lessjs {
 
 }
 
-$less = new lesscNormalized();
-$less->setFormatter(new SortingFormatter);
+$less = new lesscNormalizedV1();
+$less->setFormatter(new SortingFormatterV1);
 echo $less->parse(file_get_contents($fname));
 
