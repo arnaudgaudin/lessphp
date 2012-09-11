@@ -44,7 +44,7 @@ $path  = realpath(dirname(__FILE__)).'/';
 
 require $path."lessc.inc.php";
 
-$VERSION = lessc::$VERSION;
+$VERSION = lesscV1::$VERSION;
 
 $fa = "Fatal Error: ";
 function err($msg) {
@@ -138,7 +138,7 @@ if (has("w")) {
 			$last_action = time();
 
 			try {
-				$cache = lessc::cexecute($cache);
+				$cache = lesscV1::cexecute($cache);
 				echo "Writing updated file: ".$out."\n";
 				if (!file_put_contents($out, $cache['compiled'])) {
 					err($fa."Could not write to file ".$out);
