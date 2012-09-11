@@ -2210,7 +2210,7 @@ class lessc_parser {
 				$hidden = true;
 				if (!isset($block->args)) {
 					foreach ($block->tags as $tag) {
-						if (!is_string($tag) || $tag{0} != $this->lessc->mPrefix) {
+						if (!is_string($tag) || $tag{0} != $this->lesscV1->mPrefix) {
 							$hidden = false;
 							break;
 						}
@@ -2264,8 +2264,8 @@ class lessc_parser {
 	protected function fixTags($tags) {
 		// move @ tags out of variable namespace
 		foreach ($tags as &$tag) {
-			if ($tag{0} == $this->lessc->vPrefix)
-				$tag[0] = $this->lessc->mPrefix;
+			if ($tag{0} == $this->lesscV1->vPrefix)
+				$tag[0] = $this->lesscV1->mPrefix;
 		}
 		return $tags;
 	}
@@ -2664,7 +2664,7 @@ class lessc_parser {
 			$this->keyword($var) &&
 			$this->literal("}", false))
 		{
-			$out = array("variable", $this->lessc->vPrefix . $var);
+			$out = array("variable", $this->lesscV1->vPrefix . $var);
 			$this->eatWhiteDefault = $oldWhite;
 			if ($this->eatWhiteDefault) $this->whitespace();
 			return true;
@@ -2819,7 +2819,7 @@ class lessc_parser {
 			if ($this->whitespace()) $value .= " ";
 
 			// escape parent selector, (yuck)
-			$value = str_replace($this->lessc->parentSelector, "$&$", $value);
+			$value = str_replace($this->lesscV1->parentSelector, "$&$", $value);
 			return true;
 		}
 
@@ -2919,13 +2919,13 @@ class lessc_parser {
 	// consume a less variable
 	protected function variable(&$name) {
 		$s = $this->seek();
-		if ($this->literal($this->lessc->vPrefix, false) &&
+		if ($this->literal($this->lesscV1->vPrefix, false) &&
 			($this->variable($sub) || $this->keyword($name)))
 		{
 			if (!empty($sub)) {
 				$name = array('variable', $sub);
 			} else {
-				$name = $this->lessc->vPrefix.$name;
+				$name = $this->lesscV1->vPrefix.$name;
 			}
 			return true;
 		}
