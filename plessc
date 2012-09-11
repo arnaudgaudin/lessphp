@@ -58,7 +58,7 @@ if (php_sapi_name() != "cli") {
 
 function make_less($fname = null) {
 	global $opts;
-	$l = new lessc($fname);
+	$l = new lesscV1($fname);
 
 	if (has("f")) {
 		$format = $opts["f"];
