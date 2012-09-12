@@ -226,7 +226,7 @@ function dumpWithoutParent($o, $alsoStrip=array()) {
 try {
 	$less = make_less($fname);
 	if (has("T", "X")) {
-		$parser = new lessc_parser($less, $fname);
+		$parser = new lessc_parserV1($less, $fname);
 		$tree = $parser->parse(file_get_contents($fname));
 		if (has("X"))
 			$out = print_r($tree, 1);

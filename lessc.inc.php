@@ -15,7 +15,7 @@
  * The less compiler and parser.
  *
  * Converting LESS to CSS is a three stage process. The incoming file is parsed
- * by `lessc_parser` into a syntax tree, then it is compiled into another tree
+ * by `lessc_parserV1` into a syntax tree, then it is compiled into another tree
  * representing the CSS structure by `lessc`. The CSS tree is fed into a
  * formatter, like `lessc_formatter` which then outputs CSS as a string.
  *
@@ -32,7 +32,7 @@
  * evaluation context, such as all available mixins and variables at any given
  * time.
  *
- * The `lessc_parser` class is only concerned with parsing its input.
+ * The `lessc_parserV1` class is only concerned with parsing its input.
  *
  * The `lessc_formatter` takes a CSS tree, and dumps it to a formatted string,
  * handling things like indentation.
@@ -1552,7 +1552,7 @@ class lesscV1 {
 	// inject array of unparsed strings into environment as variables
 	protected function injectVariables($args) {
 		$this->pushEnv();
-		$parser = new lessc_parser($this, __METHOD__);
+		$parser = new lessc_parserV1($this, __METHOD__);
 		foreach ($args as $name => $strValue) {
 			if ($name{0} != '@') $name = '@'.$name;
 			$parser->count = 0;
@@ -1729,7 +1729,7 @@ class lesscV1 {
 	}
 
 	protected function makeParser($name) {
-		$parser = new lessc_parser($this, $name);
+		$parser = new lessc_parserV1($this, $name);
 		$parser->writeComments = $this->preserveComments;
 
 		return $parser;
@@ -1966,7 +1966,7 @@ class lesscV1 {
 
 // responsible for taking a string of LESS code and converting it into a
 // syntax tree
-class lessc_parser {
+class lessc_parserV1 {
 	static protected $nextBlockId = 0; // used to uniquely identify blocks
 
 	static protected $precedence = array(
