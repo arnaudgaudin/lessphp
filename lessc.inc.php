@@ -896,7 +896,7 @@ class lesscV1 {
 	 * @return array
 	 */
 	function lib_unitLess($arg) {
-		return array($arg[1]);
+		return array("number", $arg[1]);
 	}
 
 	/**
@@ -2704,7 +2704,7 @@ class lessc_parserV1 {
 	}
 
 	// consume a list of property values delimited by ; and wrapped in ()
-	protected function argumentValues(&$args, $delim = ',') {
+	protected function argumentValues(&$args, $delim = ';') {
 		$s = $this->seek();
 		if (!$this->literal('(')) return false;
 
@@ -2730,7 +2730,7 @@ class lessc_parserV1 {
 	// consume an argument definition list surrounded by ()
 	// each argument is a variable name with optional value
 	// or at the end a ... or a variable named followed by ...
-	protected function argumentDef(&$args, &$isVararg, $delim = ',') {
+	protected function argumentDef(&$args, &$isVararg, $delim = ';') {
 		$s = $this->seek();
 		if (!$this->literal('(')) return false;
 
